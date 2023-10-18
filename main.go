@@ -5,13 +5,14 @@ import (
 	"context"
 	"html/template"
 	"net/http"
-	"time"
 
 	"github.com/fasthttp/websocket"
 	"github.com/gin-gonic/gin"
 	"github.com/graytonio/allchat/lib/chatroom"
+	"github.com/graytonio/allchat/lib/config"
 	"github.com/graytonio/allchat/lib/twitch"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 var upgrader = websocket.Upgrader{}
@@ -44,19 +45,16 @@ func handleChatWebsocket(ctx context.Context, w http.ResponseWriter, r *http.Req
 	}
 }
 
-func sendRandomMessages(chatChannel chan *chatroom.ChatMessage) {
-	for {
-		chatChannel <- &chatroom.ChatMessage{
-			Username: "graytonio",
-			Message: "Sup",
-			Source: "GO",
-		}
-		time.Sleep(time.Second)
+func connectToChats(chatChannel chan *chatroom.ChatMessage) {
+	if slices.Contains(config.GetConfig().EnabledChats, "twitch") {
+		logrus.WithFields(logrus.Fields{
+			"channel": config.GetConfig().Twitch.Channel,
+		}).Info("Connecting to twitch chat rooom")
+		go twitch.ConnectToChat(&config.GetConfig().Twitch, chatChannel)
 	}
 }
 
 func main() {
-
 	chatChannel := make(chan *chatroom.ChatMessage)
 
 	r := gin.Default()
@@ -71,8 +69,6 @@ func main() {
 	r.GET("/connect", func(c *gin.Context) {
 		handleChatWebsocket(context.TODO(), c.Writer, c.Request, chatChannel)
 	})
-
-	go twitch.ConnectToChat("graytonio", chatChannel)
-
+	connectToChats(chatChannel)
 	r.Run()
 }

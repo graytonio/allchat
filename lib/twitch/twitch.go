@@ -2,16 +2,16 @@ package twitch
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"strings"
 
 	"github.com/fasthttp/websocket"
 	"github.com/graytonio/allchat/lib/chatroom"
+	"github.com/graytonio/allchat/lib/config"
 	"github.com/sirupsen/logrus"
 )
 
-func ConnectToChat(channelName string, chatChannel chan *chatroom.ChatMessage) {
+func ConnectToChat(conf *config.TwitchConfig, chatChannel chan *chatroom.ChatMessage) {
 	u := url.URL{Scheme: "ws", Host: "irc-ws.chat.twitch.tv:80"}
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
@@ -26,7 +26,7 @@ func ConnectToChat(channelName string, chatChannel chan *chatroom.ChatMessage) {
 		return
 	}
 
-	err = c.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("JOIN #%s", channelName)))
+	err = c.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("JOIN #%s", conf.Channel)))
 	if err != nil {
 		logrus.WithError(err).Error("could not join channel")
 		return
@@ -44,7 +44,7 @@ func ConnectToChat(channelName string, chatChannel chan *chatroom.ChatMessage) {
 			chatChannel <- parsedMessage
 		}
 
-		log.Printf("recv: %s", message)
+		logrus.WithField("message", string(message)).Debugf("received socket message")
 	}
 }
 
@@ -54,15 +54,8 @@ func parseTwitchMessage(raw []byte) *chatroom.ChatMessage {
 	}
 	
 	user := strings.Split(string(raw), "!")[0]
-
+	user = strings.TrimPrefix(user, ":")
 	content := strings.Split(string(raw), ":")[2]
-
-	// inUser := false
-	// inCMD := false
-	// inMessage := true
-	// for _, c := range raw {
-		
-	// }
 
 	return &chatroom.ChatMessage{
 		Username: user,
