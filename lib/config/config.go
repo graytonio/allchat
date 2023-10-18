@@ -16,7 +16,9 @@ type TwitchConfig struct {
 	Channel string `mapstructure:"channel"`
 }
 
-var conf = Config{}
+var conf = Config{
+	LogLevel: "info",
+}
 
 func init() {
 	viper.SetConfigName("config")
