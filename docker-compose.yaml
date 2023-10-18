@@ -1,0 +1,7 @@
+services:
+  allchat:
+    image: ghcr.io/graytonio/allchat:latest
+    volumes:
+      - ${PWD}/config.yaml:/config.yaml
+    ports:
+      - "8080:8080"
